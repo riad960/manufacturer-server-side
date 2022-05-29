@@ -19,6 +19,21 @@ const client = new MongoClient(uri, {
   useUnifiedTopology: true,
   serverApi: ServerApiVersion.v1,
 });
+// very jtw middleware
+function verifyJwt(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).send({ message: "Unauthorizes access" });
+  }
+  const token = authHeader.split(" ")[1];
+  jwt.verify(token, process.env.ACCES_TOKEN_SECRET, function (err, decoded) {
+    if (err) {
+      return res.status(403).send({ message: "Forbidden Access" });
+    }
+    req.decoded = decoded;
+    next();
+  });
+}
 // connecting the client
 async function run() {
   try {
@@ -48,9 +63,10 @@ async function run() {
     // orders post api
     app.post("/order", async (req, res) => {
       const Order = req.body;
-      console.log(Order);
+
       const querry = {
-        id: Order.id,
+        product: Order.product,
+        email: Order.email,
       };
       const exits = await OrderCollection.findOne(querry);
       if (exits) {
@@ -59,9 +75,36 @@ async function run() {
       const result = await OrderCollection.insertOne(Order);
       res.send(result);
     });
+    // add items
+    app.post("/products", async (req, res) => {
+      const Item = req.body;
 
+      const querry = {
+        name: Item.name,
+      };
+      const exits = await ProductsCollection.findOne(querry);
+      if (exits) {
+        return res.send({ success: false, order: exits });
+      }
+      const result = await ProductsCollection.insertOne(Item);
+      res.send(result);
+    });
+    // delete items
+    app.delete("/products/:id", async (req, res) => {
+      const name = req.params.id;
+      const querry = {
+        name: name,
+      };
+      const result = await ProductsCollection.deleteOne(querry);
+      res.send(result);
+    });
+    // get users
+    app.get("/users", verifyJwt, async (req, res) => {
+      const users = await UserCollection.find().toArray();
+      res.send(users);
+    });
     // user checking
-    app.put("/user/:id", async (req, res) => {
+    app.put("/user/:email", async (req, res) => {
       const email = req.params.email;
       const user = req.body;
       const filter = { email: email };
@@ -73,16 +116,87 @@ async function run() {
       const token = jwt.sign({ email: email }, process.env.ACCES_TOKEN_SECRET, {
         expiresIn: "7d",
       });
+
       res.send({ result, accesToken: token });
     });
-    // getting my orders
-    app.get("/orders/:id", async (req, res) => {
-      const id = req.params.id;
+    app.delete("/user/:email", async (req, res) => {
+      const email = req.params.email;
 
-      const querry = { email: id };
-      const cursor = await OrderCollection.find(querry);
-      const result = await cursor.toArray();
+      const filter = { email: email };
+
+      const result = await UserCollection.deleteOne(filter);
+
       res.send(result);
+    });
+
+    // making user admin
+    app.put("/user/admin/:email", async (req, res) => {
+      const email = req.params.email;
+      const requester = req.decoded.email;
+      const requesterAccount = await UserCollection.findOne({
+        email: requester,
+      });
+      if (requesterAccount.role === "admin") {
+        const filter = { email: email };
+
+        const updateDoc = {
+          $set: { role: "admin" },
+        };
+        const result = await UserCollection.updateOne(filter, updateDoc);
+
+        res.send(result);
+      } else {
+        res.status(403).send({ message: "Unauthorized Acces" });
+      }
+    });
+    // is user or not
+    app.get("/admin/:email", async (req, res) => {
+      const email = req.params.email;
+      const user = await UserCollection.findOne({ email: email });
+      const isAdmin = user.role === "admin";
+      res.send({ admin: isAdmin });
+    });
+    // getting my orders
+    app.get("/orders/:id", verifyJwt, async (req, res) => {
+      const id = req.params.id;
+      const decoded = req.decoded.email;
+      if (id === decoded) {
+        const querry = { email: id };
+        const cursor = await OrderCollection.find(querry);
+        const result = await cursor.toArray();
+        res.send(result);
+      } else {
+        return res.status(404).send({ message: "Forbidden Acces" });
+      }
+    });
+    // admin : getting order
+    app.get("/orders", verifyJwt, async (req, res) => {
+      const users = await OrderCollection.find().toArray();
+      res.send(users);
+    });
+    // add reviews
+    const ReviewCollection = client
+      .db("tool_manufacturer")
+      .collection("review");
+    app.post("/userReviews", async (req, res) => {
+      const Order = req.body;
+
+      const querry = {
+        name: Order.name,
+      };
+      const exits = await ReviewCollection.findOne(querry);
+      if (exits) {
+        return res.send({ success: false, order: exits });
+      }
+      const result = await ReviewCollection.insertOne(Order);
+      res.send(result);
+    });
+    // get reviews
+    app.get("/userReviews", async (req, res) => {
+      const querry = {};
+      const cursor = ReviewCollection.find(querry);
+      const review = await cursor.toArray();
+      res.send(review);
     });
   } finally {
   }
