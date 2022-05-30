@@ -162,7 +162,7 @@ async function run() {
     });
 
     // making user admin
-    app.put("/user/admin/:email", async (req, res) => {
+    app.put("/user/admin/:email", verifyJwt, async (req, res) => {
       const email = req.params.email;
       const requester = req.decoded.email;
       const requesterAccount = await UserCollection.findOne({
