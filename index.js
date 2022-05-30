@@ -162,7 +162,7 @@ async function run() {
       const decoded = req.decoded.email;
       if (id === decoded) {
         const querry = { email: id };
-        const cursor = await OrderCollection.find(querry);
+        const cursor = OrderCollection.find(querry);
         const result = await cursor.toArray();
         res.send(result);
       } else {
