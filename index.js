@@ -18,6 +18,7 @@ app.use(
     credentials: true,
   })
 );
+//cors
 // const corsConfig = {
 //   origin: true,
 //   credentials: true,
@@ -184,8 +185,12 @@ async function run() {
     app.get("/admin/:email", async (req, res) => {
       const email = req.params.email;
       const user = await UserCollection.findOne({ email: email });
-      const isAdmin = user.role === "admin";
-      res.send({ admin: isAdmin });
+      const isAdmin = user?.role === "admin";
+      if (isAdmin) {
+        res.send({ admin: isAdmin });
+      } else {
+        res.send({ admin: false });
+      }
     });
     // getting my orders
     app.get("/orders/:id", verifyJwt, async (req, res) => {
