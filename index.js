@@ -122,6 +122,15 @@ async function run() {
       res.send(result);
     });
     // delete items
+    app.delete("/delevered/:id", async (req, res) => {
+      const id = req.params.id;
+      const querry = {
+        _id: ObjectId(id),
+      };
+      const result = await OrderCollection.deleteOne(querry);
+      res.send(result);
+    });
+    // delevered items
     app.delete("/products/:id", async (req, res) => {
       const name = req.params.id;
       const querry = {
