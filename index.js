@@ -1,7 +1,7 @@
 // importing the
 const express = require("express");
 const app = express();
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 4200;
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 // require mongo client
@@ -10,7 +10,14 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 // using middleware
 app.use(express.json());
-app.use(cors());
+// app.use(cors());
+app.use(
+  cors({
+    origin: true,
+    optionsSuccessStatus: 200,
+    credentials: true,
+  })
+);
 // initialize the uri
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.0acv4.mongodb.net/?retryWrites=true&w=majority`;
 // creating the client
