@@ -91,12 +91,11 @@ async function run() {
     });
     // delete items
     app.delete("/products/:id", async (req, res) => {
-      const id = req.params.id;
+      const name = req.params.id;
       const querry = {
-        _id: ObjectId(id),
+        name: name,
       };
-
-      const result = await ProductsCollection.deleteOne(querry).toArray();
+      const result = await ProductsCollection.deleteOne(querry);
       res.send(result);
     });
     // get users
